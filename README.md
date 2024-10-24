@@ -13,8 +13,6 @@ Crawl a site to generate knowledge files to create your own custom GPT from one 
     - [Run your crawler](#run-your-crawler)
   - [Alternative methods](#alternative-methods)
     - [Running in a container with Docker](#running-in-a-container-with-docker)
-    - [Running as a CLI](#running-as-a-cli)
-      - [Development](#development)
     - [Running as an API](#running-as-an-api)
   - [Upload your data to OpenAI](#upload-your-data-to-openai)
     - [Create a custom GPT](#create-a-custom-gpt)
@@ -106,7 +104,7 @@ To obtain the `output.json` with a containerized execution, go into the `contain
 
 #### Running as an API
 
-To run the app as a API server you will need to do an `npm install` to install the dependencies. The server is written in Express JS.
+To run the app as an API server you will need to do an `npm install` to install the dependencies. The server is written in Express JS.
 
 To run the server.
 
