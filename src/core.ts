@@ -1,11 +1,13 @@
 // For more information, see https://crawlee.dev/
 import { PlaywrightCrawler, downloadListOfUrls } from "crawlee";
-import { readFile, writeFile } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import { glob } from "glob";
 import { Config, configSchema } from "./config.js";
 import { Page } from "playwright";
 import { isWithinTokenLimit } from "gpt-tokenizer";
 import { PathLike } from "fs";
+import { existsSync } from "fs";
+import path from "path";
 
 let pageCounter = 0;
 let crawler: PlaywrightCrawler;
@@ -150,12 +152,19 @@ export async function crawl(config: Config) {
 }
 
 export async function write(config: Config) {
-  let nextFileNameString: PathLike = "";
   const jsonFiles = await glob("storage/datasets/default/*.json", {
     absolute: true,
   });
 
   console.log(`Found ${jsonFiles.length} files to combine...`);
+
+  // If savePerPage is enabled, create a pages directory
+  if (config.savePerPage) {
+    const pagesDir = "pages";
+    if (!existsSync(pagesDir)) {
+      await mkdir(pagesDir);
+    }
+  }
 
   let currentResults: Record<string, any>[] = [];
   let currentSize: number = 0;
@@ -170,8 +179,8 @@ export async function write(config: Config) {
   const nextFileName = (): string =>
     `${config.outputFileName.replace(/\.json$/, "")}-${fileCounter}.json`;
 
-  const writeBatchToFile = async (): Promise<void> => {
-    nextFileNameString = nextFileName();
+  const writeBatchToFile = async (): Promise<string> => {
+    const nextFileNameString = nextFileName();
     await writeFile(
       nextFileNameString,
       JSON.stringify(currentResults, null, 2),
@@ -182,13 +191,30 @@ export async function write(config: Config) {
     currentResults = [];
     currentSize = 0;
     fileCounter++;
+    return nextFileNameString;
+  };
+
+  const writePageToFile = async (data: Record<string, any>): Promise<void> => {
+    const urlObj = new URL(data.url);
+    const sanitizedPath = urlObj.pathname.replace(/\//g, "_").replace(/^_/, "");
+    const fileName = sanitizedPath || "index";
+    const filePath = path.join("pages", `${fileName}.json`);
+    await writeFile(filePath, JSON.stringify(data, null, 2));
+    console.log(`Wrote page data to ${filePath}`);
   };
 
   let estimatedTokens: number = 0;
+  let lastWrittenFile: string = "";
 
-  const addContentOrSplit = async (
-    data: Record<string, any>,
-  ): Promise<void> => {
+  for (const file of jsonFiles) {
+    const fileContent = await readFile(file, "utf-8");
+    const data: Record<string, any> = JSON.parse(fileContent);
+
+    if (config.savePerPage) {
+      await writePageToFile(data);
+      continue;
+    }
+
     const contentString: string = JSON.stringify(data);
     const tokenCount: number | false = isWithinTokenLimit(
       contentString,
@@ -197,11 +223,9 @@ export async function write(config: Config) {
 
     if (typeof tokenCount === "number") {
       if (estimatedTokens + tokenCount > config.maxTokens!) {
-        // Only write the batch if it's not empty (something to write)
         if (currentResults.length > 0) {
-          await writeBatchToFile();
+          lastWrittenFile = await writeBatchToFile();
         }
-        // Since the addition of a single item exceeded the token limit, halve it.
         estimatedTokens = Math.floor(tokenCount / 2);
         currentResults.push(data);
       } else {
@@ -212,23 +236,16 @@ export async function write(config: Config) {
 
     currentSize += getStringByteSize(contentString);
     if (currentSize > maxBytes) {
-      await writeBatchToFile();
+      lastWrittenFile = await writeBatchToFile();
     }
-  };
-
-  // Iterate over each JSON file and process its contents.
-  for (const file of jsonFiles) {
-    const fileContent = await readFile(file, "utf-8");
-    const data: Record<string, any> = JSON.parse(fileContent);
-    await addContentOrSplit(data);
   }
 
-  // Check if any remaining data needs to be written to a file.
+  // Check if any remaining data needs to be written to a file
   if (currentResults.length > 0) {
-    await writeBatchToFile();
+    lastWrittenFile = await writeBatchToFile();
   }
 
-  return nextFileNameString;
+  return lastWrittenFile;
 }
 
 class GPTCrawlerCore {

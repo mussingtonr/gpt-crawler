@@ -42,6 +42,12 @@ export const configSchema = z.object({
    * @default "output.json"
    */
   outputFileName: z.string(),
+  /**
+   * Save each crawled page as a separate JSON file
+   * When true, creates individual JSON files for each page in an 'pages' subdirectory
+   * @default false
+   */
+  savePerPage: z.boolean().optional(),
   /** Optional cookie to be set. E.g. for Cookie Consent */
   cookie: z
     .union([
