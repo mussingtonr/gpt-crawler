@@ -17,7 +17,7 @@ export const configSchema = z.object({
    * Basic Crawler Settings
    * --------------------
    */
-  
+
   /** URL to start the crawl
    * Can be a regular URL or a sitemap URL
    * @example "https://www.builder.io/c/docs/developers"

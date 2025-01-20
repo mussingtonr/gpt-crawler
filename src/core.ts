@@ -128,7 +128,8 @@ export async function crawl(config: Config) {
         browserPoolOptions: {
           maxOpenPagesPerBrowser: config.maxOpenPagesPerBrowser ?? 1,
           useFingerprints: false,
-          retireBrowserAfterPageCount: config.retireInstanceAfterRequestCount ?? 5,
+          retireBrowserAfterPageCount:
+            config.retireInstanceAfterRequestCount ?? 5,
         },
         // Use the requestHandler to process each of the crawled pages.
         async requestHandler({ request, page, enqueueLinks, log, pushData }) {
@@ -209,7 +210,11 @@ export async function crawl(config: Config) {
               await page.route(
                 `**\/*.{${RESOURCE_EXCLUSIONS.join()}}`,
                 (route) => {
-                  log.debug(`Aborting request for excluded resource: ${route.request().url()}`);
+                  log.debug(
+                    `Aborting request for excluded resource: ${route
+                      .request()
+                      .url()}`,
+                  );
                   route.abort("aborted");
                 },
               );

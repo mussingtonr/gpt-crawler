@@ -31,7 +31,16 @@ export const defaultConfig: Config = {
    */
   throttle: true,
   requestDelay: 12000,
-  resourceExclusions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'css', 'woff', 'woff2'],
+  resourceExclusions: [
+    "png",
+    "jpg",
+    "jpeg",
+    "gif",
+    "webp",
+    "css",
+    "woff",
+    "woff2",
+  ],
 
   /**
    * Browser & Concurrency Management
@@ -40,7 +49,7 @@ export const defaultConfig: Config = {
    * - maxConcurrency: Simultaneous page crawls (1-2 recommended)
    * - maxOpenPagesPerBrowser: Pages per browser (keep at 1)
    * - retireInstanceAfterRequestCount: Pages before browser restart
-   * 
+   *
    * Lower values provide more stability but slower crawling.
    * Higher values risk memory issues and browser crashes.
    */
@@ -55,11 +64,11 @@ export const defaultConfig: Config = {
    * - maxRequestRetries: Failed requests auto-retry count
    * - requestHandlerTimeoutSecs: Total operation timeout
    * - navigationTimeoutSecs: Initial page load timeout
-   * 
+   *
    * Navigation timeout should be less than handler timeout.
    * Failed requests return to queue for retry attempts.
    */
   maxRequestRetries: 3,
   requestHandlerTimeoutSecs: 180,
-  navigationTimeoutSecs: 120
+  navigationTimeoutSecs: 120,
 };
