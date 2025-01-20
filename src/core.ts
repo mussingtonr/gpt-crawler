@@ -119,6 +119,17 @@ export async function crawl(config: Config) {
     // browser controlled by the Playwright library.
     crawler = new PlaywrightCrawler(
       {
+        // Configure concurrency based on config settings
+        // Use configuration values for crawler behavior
+        maxConcurrency: config.maxConcurrency ?? 1,
+        maxRequestRetries: config.maxRequestRetries ?? 3,
+        requestHandlerTimeoutSecs: config.requestHandlerTimeoutSecs ?? 180,
+        navigationTimeoutSecs: config.navigationTimeoutSecs ?? 120,
+        browserPoolOptions: {
+          maxOpenPagesPerBrowser: config.maxOpenPagesPerBrowser ?? 1,
+          useFingerprints: false,
+          retireBrowserAfterPageCount: config.retireInstanceAfterRequestCount ?? 5,
+        },
         // Use the requestHandler to process each of the crawled pages.
         async requestHandler({ request, page, enqueueLinks, log, pushData }) {
           const title = await page.title();
@@ -178,11 +189,7 @@ export async function crawl(config: Config) {
         preNavigationHooks: [
           // Abort requests for certain resource types
           async ({ request, page, log }) => {
-            // If there are no resource exclusions, return
-            const RESOURCE_EXCLUSTIONS = config.resourceExclusions ?? [];
-            if (RESOURCE_EXCLUSTIONS.length === 0) {
-              return;
-            }
+            // Handle cookies first if present
             if (config.cookie) {
               const cookies = (
                 Array.isArray(config.cookie) ? config.cookie : [config.cookie]
@@ -195,13 +202,18 @@ export async function crawl(config: Config) {
               });
               await page.context().addCookies(cookies);
             }
-            await page.route(
-              `**\/*.{${RESOURCE_EXCLUSTIONS.join()}}`,
-              (route) => route.abort("aborted"),
-            );
-            log.info(
-              `Aborting requests for as this is a resource excluded route`,
-            );
+
+            // Handle resource exclusions if present
+            const RESOURCE_EXCLUSIONS = config.resourceExclusions ?? [];
+            if (RESOURCE_EXCLUSIONS.length > 0) {
+              await page.route(
+                `**\/*.{${RESOURCE_EXCLUSIONS.join()}}`,
+                (route) => {
+                  log.debug(`Aborting request for excluded resource: ${route.request().url()}`);
+                  route.abort("aborted");
+                },
+              );
+            }
           },
         ],
       },

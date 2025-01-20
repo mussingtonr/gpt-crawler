@@ -6,12 +6,22 @@ configDotenv();
 
 const Page: z.ZodType<Page> = z.any();
 
+/**
+ * Configuration Schema Definition
+ * -----------------------------
+ * Defines the structure and validation rules for the crawler configuration.
+ * Uses Zod for runtime type checking and validation.
+ */
 export const configSchema = z.object({
   /**
-   * URL to start the crawl, if url is a sitemap, it will crawl all pages in the sitemap
+   * Basic Crawler Settings
+   * --------------------
+   */
+  
+  /** URL to start the crawl
+   * Can be a regular URL or a sitemap URL
    * @example "https://www.builder.io/c/docs/developers"
    * @example "https://www.builder.io/sitemap.xml"
-   * @default ""
    */
   url: z.string(),
   /**
@@ -101,6 +111,36 @@ export const configSchema = z.object({
    * @default 1000
    */
   requestDelay: z.number().int().nonnegative().optional(),
+  /**
+   * Maximum number of concurrent requests
+   * @default 2
+   */
+  maxConcurrency: z.number().int().positive().optional(),
+  /**
+   * Maximum number of pages to keep open per browser instance
+   * @default 1
+   */
+  maxOpenPagesPerBrowser: z.number().int().positive().optional(),
+  /**
+   * Number of requests after which to retire a browser instance
+   * @default 10
+   */
+  retireInstanceAfterRequestCount: z.number().int().positive().optional(),
+  /**
+   * Maximum number of retries for failed requests
+   * @default 3
+   */
+  maxRequestRetries: z.number().int().nonnegative().optional(),
+  /**
+   * Timeout for request handler in seconds
+   * @default 180
+   */
+  requestHandlerTimeoutSecs: z.number().int().positive().optional(),
+  /**
+   * Timeout for page navigation in seconds
+   * @default 120
+   */
+  navigationTimeoutSecs: z.number().int().positive().optional(),
 });
 
 export type Config = z.infer<typeof configSchema>;
