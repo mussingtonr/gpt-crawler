@@ -10,7 +10,7 @@ import { existsSync } from "fs";
 import path from "path";
 
 // Utility function for throttling
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 let pageCounter = 0;
 let crawler: PlaywrightCrawler;
@@ -54,7 +54,7 @@ export async function waitForXPath(page: Page, xpath: string, timeout: number) {
 }
 
 async function ensurePagesDirectory(config: Config) {
-  const pagesDir = path.join(process.cwd(), 'pages');
+  const pagesDir = path.join(process.cwd(), "pages");
   if (!existsSync(pagesDir)) {
     await mkdir(pagesDir);
   }
@@ -72,34 +72,34 @@ async function ensurePagesDirectory(config: Config) {
 function extractFilename(url: string, matchPattern: string | string[]) {
   // Convert matchPattern to array if it's a string
   const patterns = Array.isArray(matchPattern) ? matchPattern : [matchPattern];
-  
+
   // Find the matching pattern
-  const pattern = patterns.find(p => {
-    const regexStr = p.replace(/\*\*/g, '(.+)');
+  const pattern = patterns.find((p) => {
+    const regexStr = p.replace(/\*\*/g, "(.+)");
     const regex = new RegExp(regexStr);
     return regex.test(url);
   });
 
   if (!pattern) {
     // Fallback to URL-based name if no pattern matches
-    return url.split('/').pop() || 'index';
+    return url.split("/").pop() || "index";
   }
 
   // Extract the part after /**
-  const regexStr = pattern.replace(/\*\*/g, '(.+)');
+  const regexStr = pattern.replace(/\*\*/g, "(.+)");
   const regex = new RegExp(regexStr);
   const match = url.match(regex);
-  
+
   if (match && match[1]) {
     // Clean up the extracted path
     return match[1]
-      .replace(/^\/+|\/+$/g, '') // Remove leading/trailing slashes
-      .replace(/\//g, '_') // Replace remaining slashes with underscores
+      .replace(/^\/+|\/+$/g, "") // Remove leading/trailing slashes
+      .replace(/\//g, "_") // Replace remaining slashes with underscores
       .toLowerCase();
   }
 
   // Fallback to URL-based name
-  return url.split('/').pop() || 'index';
+  return url.split("/").pop() || "index";
 }
 
 async function savePageToFile(data: Record<string, any>, config: Config) {
