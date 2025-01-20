@@ -91,6 +91,16 @@ export const configSchema = z.object({
    * @example 5000
    */
   maxTokens: z.number().int().positive().optional(),
+  /**
+   * Enable request throttling to control crawl speed
+   * @default false
+   */
+  throttle: z.boolean().optional(),
+  /**
+   * Delay in milliseconds between requests when throttling is enabled
+   * @default 1000
+   */
+  requestDelay: z.number().int().nonnegative().optional(),
 });
 
 export type Config = z.infer<typeof configSchema>;

@@ -1,10 +1,12 @@
 import { Config } from "./src/config";
 
 export const defaultConfig: Config = {
-  url: "https://ui3.nuxt.dev/",
-  match: "https://ui3.nuxt.dev/**",
-  maxPagesToCrawl: 2000,
-  outputFileName: "ui3.nuxt.dev-2024-10-24.json",
+  url: "https://motion.dev/docs",
+  match: "https://motion.dev/docs/**",
+  maxPagesToCrawl: 100, // Reduced to improve stability
+  outputFileName: "motion-animation-2025-1-10.json",
   maxTokens: 2000000,
-  savePerPage: true, // New option to save each page separately
+  savePerPage: true,
+  throttle: true,
+  requestDelay: 8000, // Increased delay to prevent browser context issues
 };

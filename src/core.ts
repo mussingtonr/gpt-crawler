@@ -1,11 +1,16 @@
 // For more information, see https://crawlee.dev/
 import { Configuration, PlaywrightCrawler, downloadListOfUrls } from "crawlee";
-import { readFile, writeFile } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import { glob } from "glob";
 import { Config, configSchema } from "./config.js";
 import { Page } from "playwright";
 import { isWithinTokenLimit } from "gpt-tokenizer";
 import { PathLike } from "fs";
+import { existsSync } from "fs";
+import path from "path";
+
+// Utility function for throttling
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 let pageCounter = 0;
 let crawler: PlaywrightCrawler;
@@ -48,6 +53,64 @@ export async function waitForXPath(page: Page, xpath: string, timeout: number) {
   );
 }
 
+async function ensurePagesDirectory(config: Config) {
+  const pagesDir = path.join(process.cwd(), 'pages');
+  if (!existsSync(pagesDir)) {
+    await mkdir(pagesDir);
+  }
+
+  // Create subfolder based on outputFileName (without extension)
+  const subfolderName = config.outputFileName.replace(/\.[^/.]+$/, "");
+  const subfolderPath = path.join(pagesDir, subfolderName);
+  if (!existsSync(subfolderPath)) {
+    await mkdir(subfolderPath);
+  }
+
+  return subfolderPath;
+}
+
+function extractFilename(url: string, matchPattern: string | string[]) {
+  // Convert matchPattern to array if it's a string
+  const patterns = Array.isArray(matchPattern) ? matchPattern : [matchPattern];
+  
+  // Find the matching pattern
+  const pattern = patterns.find(p => {
+    const regexStr = p.replace(/\*\*/g, '(.+)');
+    const regex = new RegExp(regexStr);
+    return regex.test(url);
+  });
+
+  if (!pattern) {
+    // Fallback to URL-based name if no pattern matches
+    return url.split('/').pop() || 'index';
+  }
+
+  // Extract the part after /**
+  const regexStr = pattern.replace(/\*\*/g, '(.+)');
+  const regex = new RegExp(regexStr);
+  const match = url.match(regex);
+  
+  if (match && match[1]) {
+    // Clean up the extracted path
+    return match[1]
+      .replace(/^\/+|\/+$/g, '') // Remove leading/trailing slashes
+      .replace(/\//g, '_') // Replace remaining slashes with underscores
+      .toLowerCase();
+  }
+
+  // Fallback to URL-based name
+  return url.split('/').pop() || 'index';
+}
+
+async function savePageToFile(data: Record<string, any>, config: Config) {
+  if (!config.savePerPage) return;
+
+  const pagesDir = await ensurePagesDirectory(config);
+  const filename = extractFilename(data.url, config.match);
+  const filePath = path.join(pagesDir, `${filename}.json`);
+  await writeFile(filePath, JSON.stringify(data, null, 2));
+}
+
 export async function crawl(config: Config) {
   configSchema.parse(config);
 
@@ -80,12 +143,21 @@ export async function crawl(config: Config) {
           }
 
           const html = await getPageHtml(page, config.selector);
+          const pageData = { title, url: request.loadedUrl, html };
+
+          // Save individual page if savePerPage is enabled
+          await savePageToFile(pageData, config);
 
           // Save results as JSON to ./storage/datasets/default
-          await pushData({ title, url: request.loadedUrl, html });
+          await pushData(pageData);
 
           if (config.onVisitPage) {
             await config.onVisitPage({ page, pushData });
+          }
+
+          // Apply throttling if enabled
+          if (config.throttle && config.requestDelay) {
+            await delay(config.requestDelay);
           }
 
           // Extract links from the current page
